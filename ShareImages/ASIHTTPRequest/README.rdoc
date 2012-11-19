@@ -1,0 +1,159 @@
+Framework
+------------------------------
+CoreGraphics.framework
+CFNetwork.framework
+libz.dylib
+SystemConfiguration.framework
+MobileCoreServices.framework
+------------------------------
+★★★★★ 一、创建并执行请求 ★★★★★
+
+★不建议用同步
+★异步可用blocks，但注意ARC
+------------------------------
+
+1、创建同步请求
+
+- (IBAction)grabURL:(id)sender
+{
+    NSURL *url = [NSURL URLWithString:DATA_PATH];
+    ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+    [request startSynchronous];
+    NSError *error = [request error];
+    if (!error) {
+        id jsonObject = [NSJSONSerialization JSONObjectWithData:[request responseData] options:NSJSONReadingAllowFragments error:&error];
+        if (nil != jsonObject && nil ==error) {
+            if ([jsonObject isKindOfClass:[NSDictionary class]]) {
+                self.label.text = [[jsonObject objectForKey:@"translation"] objectAtIndex:0];
+            }
+        }
+    }
+}
+
+------------------------------
+
+2、创建异步请求
+- (IBAction)grabURLInBackground:(id)sender
+{
+   NSURL *url = [NSURL URLWithString:@"http://allseeing-i.com"];
+   ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+   [request setDelegate:self];
+   [request startAsynchronous];
+}
+ 
+- (void)requestFinished:(ASIHTTPRequest *)request
+{
+   // Use when fetching text data
+   NSString *responseString = [request responseString];
+ 
+   // Use when fetching binary data
+   NSData *responseData = [request responseData];
+}
+ 
+- (void)requestFailed:(ASIHTTPRequest *)request
+{
+   NSError *error = [request error];
+}
+
+------------------------------
+
+3、使用blocks创建异步请求
+
+- (IBAction)grabURLInBackground:(id)sender
+{
+   NSURL *url = [NSURL URLWithString:@"http://allseeing-i.com"];
+   __block ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+   [request setCompletionBlock:^{
+      // Use when fetching text data
+      NSString *responseString = [request responseString];
+ 
+      // Use when fetching binary data
+      NSData *responseData = [request responseData];
+   }];
+   [request setFailedBlock:^{
+      NSError *error = [request error];
+   }];
+   [request startAsynchronous];
+}
+
+*******
+注：ARC：
+__block __weak  ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+*******
+
+------------------------------
+
+★★★★★ 二、发送数据 ★★★★★
+
+★setPost:上传数据
+★addPost:添加值相同的数据
+★appendPost:PUT or custom POSTs
+------------------------------
+
+1、设置请求头
+
+ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+[request addRequestHeader:@"Referer" value:@"http://allseeing-i.com/"];
+
+------------------------------
+
+2、用ASIFormDataRequest上传表单
+
+ASIFormDataRequest *request = [ASIFormDataRequest requestWithURL:url];
+[request setPostValue:@"Ben" forKey:@"first_name"];
+[request setPostValue:@"Copsey" forKey:@"last_name"];
+[request setFile:@"/Users/ben/Desktop/ben.jpg" forKey:@"photo"];
+
+// Upload a file on disk  (on iOS 3.0 or later an Mac)
+[request setFile:@"/Users/ben/Desktop/ben.jpg" withFileName:@"myphoto.jpg" andContentType:@"image/jpeg"
+forKey:@"photo"];
+ 
+// Upload an NSData instance  (on iOS 3.0 or later an Mac)
+[request setData:imageData withFileName:@"myphoto.jpg" andContentType:@"image/jpeg" forKey:@"photo"];
+
+// 用add方法添加值相同的Value
+ASIFormDataRequest *request = [ASIFormDataRequest requestWithURL:url];
+[request addPostValue:@"Ben" forKey:@"names"];
+[request addPostValue:@"George" forKey:@"names"];
+[request addFile:@"/Users/ben/Desktop/ben.jpg" forKey:@"photos"];
+[request addData:imageData withFileName:@"george.jpg" andContentType:@"image/jpeg" forKey:@"photos"];
+
+------------------------------
+
+3、PUT请求和自定义POSTs
+
+ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+[request appendPostData:[@"This is my data" dataUsingEncoding:NSUTF8StringEncoding]];
+// Default becomes POST when you use appendPostData: / appendPostDataFromFile: / setPostBody:
+[request setRequestMethod:@"PUT"];
+
+------------------------------
+
+★★★★★ 三、下载数据 ★★★★★
+
+★
+★
+★
+------------------------------
+
+1、未完待补充
+
+
+上传图片
+- (void) uploadImage:(id)arg {
+    UIImage *image = [myImageView image];
+    if (!image) return;
+    NSURL *url = [NSURL URLWithString:@"http://192.168.100.116/php/picupload/upload_pic.php"];
+    ASIFormDataRequest *request = [ASIFormDataRequest requestWithURL:url];
+    NSData *data = UIImagePNGRepresentation(image);
+    [request setData:data withFileName:@"test.png" andContentType:@"image/png" forKey:@"pic"];
+    [request addPostValue:@"upload_pic" forKey:@"action"];
+    //[request addPostValue:@"zijian" forKey:@"name"];
+    // photo comment name
+    [request setDelegate:self];
+    [request setTag:100];
+    [request startAsynchronous];
+//http://192.168.1.108/php/upload/images/2012-04-21/
+}
+----------------------------------------------------------
+
